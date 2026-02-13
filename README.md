@@ -1,6 +1,10 @@
 # Notion API MCP
 
-A Model Context Protocol (MCP) server that provides advanced todo list management and content organization capabilities through Notion's API. MCP enables AI models to interact with external tools and services, allowing seamless integration with Notion's powerful features.
+A comprehensive toolkit for Notion API integration, providing both:
+- **MCP Server**: AI-powered interaction through Claude Desktop and other MCP clients
+- **CLI Scripts**: Direct command-line tools using `uv run` for automation and scripting
+
+This project enables advanced todo list management and content organization capabilities through Notion's API.
 
 ## MCP Overview
 
@@ -116,6 +120,137 @@ Add to Claude Desktop's config (`~/Library/Application Support/Claude/claude_des
 ```
 
 Note: Even if you have a .env file configured, you must add these environment variables to the Claude Desktop config for Claude to use the MCP. The .env file is primarily for local development and testing.
+
+## CLI Scripts (Standalone Usage)
+
+In addition to the MCP server, this project provides standalone CLI scripts using PEP 723 inline dependencies. These scripts can be run directly with `uv run` without any installation or virtual environment setup.
+
+### Quick Start with CLI
+
+```bash
+# Set your API key
+export NOTION_API_KEY="ntn_your_integration_token_here"
+
+# Verify connection
+uv run scripts/notion-utils.py verify-connection
+
+# Check configuration
+uv run scripts/notion-utils.py check-config
+
+# Get database info
+uv run scripts/notion-utils.py get-database-info --database-id <id>
+```
+
+### Available Scripts
+
+#### 1. `notion-utils.py` - Diagnostics and Utilities
+```bash
+# Verify API connection
+uv run scripts/notion-utils.py verify-connection
+
+# Get database information
+uv run scripts/notion-utils.py get-database-info --database-id <id>
+
+# Check environment configuration
+uv run scripts/notion-utils.py check-config
+```
+
+#### 2. `notion-pages.py` - Page Management
+```bash
+# Create a page in a database
+uv run scripts/notion-pages.py create --database-id <id> --title "My Page"
+
+# Create a page under another page
+uv run scripts/notion-pages.py create --page-id <id> --parent-type page --title "Child"
+
+# Get page information
+uv run scripts/notion-pages.py get <page-id>
+
+# Update page properties
+uv run scripts/notion-pages.py update <page-id> \
+    --properties '{"Status": {"select": {"name": "Done"}}}'
+
+# Archive/restore pages
+uv run scripts/notion-pages.py archive <page-id>
+uv run scripts/notion-pages.py restore <page-id>
+```
+
+#### 3. `notion-databases.py` - Database and Todo Operations
+```bash
+# Query a database
+uv run scripts/notion-databases.py query --database-id <id>
+
+# Query with filters
+uv run scripts/notion-databases.py query --database-id <id> \
+    --filter '{"property": "Status", "select": {"equals": "Done"}}'
+
+# Add a todo
+uv run scripts/notion-databases.py add-todo --database-id <id> \
+    --title "Complete project" \
+    --description "Finish all tasks" \
+    --due-date "2026-12-31" \
+    --priority "High" \
+    --tags "work,urgent"
+
+# Search todos
+uv run scripts/notion-databases.py search-todos --database-id <id> \
+    --status "In Progress" \
+    --priority "High"
+
+# Get database info
+uv run scripts/notion-databases.py info --database-id <id>
+```
+
+#### 4. `notion-blocks.py` - Block Content Operations
+```bash
+# Add text to a page
+uv run scripts/notion-blocks.py add <page-id> --text "Hello, world!"
+
+# Add multiple blocks from JSON
+uv run scripts/notion-blocks.py add <page-id> --blocks '[
+    {"type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "First"}}]}},
+    {"type": "heading_1", "heading_1": {"rich_text": [{"text": {"content": "Title"}}]}}
+]'
+
+# Get block content
+uv run scripts/notion-blocks.py get <block-id>
+
+# List child blocks
+uv run scripts/notion-blocks.py list-children <block-id>
+
+# Update block content
+uv run scripts/notion-blocks.py update <block-id> \
+    --content '{"paragraph": {"rich_text": [{"text": {"content": "Updated"}}]}}'
+
+# Delete a block
+uv run scripts/notion-blocks.py delete <block-id>
+```
+
+### Environment Variables for CLI
+
+The CLI scripts use environment variables for configuration (with optional CLI flag overrides):
+
+- `NOTION_API_KEY` - **Required**: Notion integration token
+- `NOTION_DATABASE_ID` - Optional: Default database ID for queries
+- `NOTION_PARENT_PAGE_ID` - Optional: Default parent page for new pages/databases
+
+You can either:
+1. Set environment variables: `export NOTION_API_KEY="ntn_..."`
+2. Create a `.env` file in the project root (automatically loaded)
+3. Override with CLI flags: `--api-key "ntn_..."`
+
+### CLI vs MCP Server
+
+**Use CLI scripts when:**
+- You want direct command-line access to Notion
+- You're writing shell scripts or automation
+- You don't need Claude Desktop integration
+- You want standalone executables
+
+**Use MCP server when:**
+- You're using Claude Desktop or other MCP clients
+- You want conversational AI interaction with Notion
+- You need complex, multi-step workflows with AI assistance
 
 ## Documentation
 
