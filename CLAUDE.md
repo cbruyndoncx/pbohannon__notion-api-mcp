@@ -1,226 +1,329 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with code in this repository.
 
 ## Project Overview
 
-This is a **Model Context Protocol (MCP) server** that provides advanced todo list management and content organization capabilities through Notion's API. MCP enables AI models to interact with external tools and services, allowing seamless integration with Notion's powerful features.
+This is a **comprehensive command-line interface (CLI)** for the Notion API. The CLI provides complete access to all Notion API features through an intuitive, human-friendly command structure.
 
-The server is Python-based and uses modern async patterns throughout with type-safe configuration using Pydantic models.
-
-## Development Setup
-
-### Environment Setup
-```bash
-# Create virtual environment
-uv venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install in editable mode
-uv pip install -e .
-```
-
-### Running the Server
-```bash
-# Run directly as module
-python -m notion_api_mcp
-
-# With PYTHONPATH (if needed for debugging)
-PYTHONPATH=/home/cb/projects/dev/pbohannon__notion-api-mcp python -m notion_api_mcp
-```
-
-### Testing
-```bash
-# Run all tests with coverage
-pytest
-
-# Run specific test file
-pytest tests/test_server.py
-
-# Run specific test
-pytest tests/test_server.py::test_function_name
-
-# Run integration tests (requires Notion API access)
-pytest -m integration
-
-# Run with verbose output
-pytest -v
-
-# Run without coverage report
-pytest --no-cov
-```
-
-### Type Checking
-```bash
-# Run mypy type checker
-mypy src/notion_api_mcp
-```
-
-### Code Formatting
-```bash
-# Format code with black
-black src/notion_api_mcp tests
-```
+The CLI is a single standalone Python script using PEP 723 inline dependencies, executable with `uv run` without installation.
 
 ## Architecture
 
+### Single-File CLI (`scripts/notion.py`)
+
+- **Lines**: ~2,260 lines
+- **API Coverage**: 100% of documented Notion API endpoints
+- **Dependencies**: httpx, click, python-dotenv, structlog
+- **Execution**: `uv run scripts/notion.py [command]`
+
+### Key Features
+
+1. **Complete API Coverage**: All Notion endpoints (pages, databases, blocks, todos)
+2. **30+ Block Types**: Support for all Notion block types
+3. **Smart Caching**: Name-to-ID resolution with automatic caching
+4. **Path Navigation**: Use "Parent/Child" paths instead of UUIDs
+5. **Human-Friendly**: Intuitive commands with helpful shortcuts
+6. **Standalone**: PEP 723 inline dependencies (no installation needed)
+
 ### Module Structure
 
-The codebase is organized into clean, focused modules:
-
+```python
+scripts/notion.py:
+├── NotionCache class          # Smart caching for name→ID resolution
+├── Helper Functions           # ~500 lines
+│   ├── create_rich_text()     # Rich text creation
+│   ├── create_property()      # Universal property creator (all types)
+│   ├── create_todo_properties() # Todo-specific properties
+│   ├── build_filter()         # Single filter builder
+│   ├── build_compound_filter() # AND/OR filter combinations
+│   ├── build_sorts()          # Sort specifications
+│   ├── build_todo_filter()    # Todo filter shortcuts
+│   └── create_block()         # Universal block creator (30+ types)
+├── Utility Functions          # Auth, UUID checking, search
+└── CLI Commands               # ~1,500 lines
+    ├── add (page, database, todo, block)
+    ├── blocks (add, list, delete, subtasks)
+    ├── check-config
+    ├── delete (page, block)
+    ├── get (page, database, block)
+    ├── list (pages, databases)
+    ├── move (page)
+    ├── query (database)
+    ├── refresh-cache
+    ├── search
+    ├── todos (search)
+    ├── update (page, database, block)
+    └── verify-connection
 ```
-src/notion_api_mcp/
-├── __main__.py          # Entry point (runs server via server.main())
-├── server.py            # MCP server implementation, tool registration, error handling
-├── api/                 # Notion API client layer
-│   ├── pages.py         # Pages API (create_page, update_page, todo properties)
-│   ├── databases.py     # Databases API (create_database, query_database, filters)
-│   └── blocks.py        # Blocks API (append_children, get_block, update_block)
-├── models/              # Data models and validation
-│   ├── properties.py    # Notion property type definitions
-│   └── responses.py     # API response models
-└── utils/               # Utilities
-    ├── auth.py          # Authentication helpers
-    └── formatting.py    # Rich text formatting, markdown conversion
+
+## Development Setup
+
+### Running the CLI
+
+```bash
+# Run directly with uv (no installation needed)
+uv run scripts/notion.py --help
+
+# Set API key
+export NOTION_API_KEY="ntn_your_integration_token_here"
+
+# Test connection
+uv run scripts/notion.py verify-connection
 ```
 
-### Key Design Patterns
+### Testing
 
-1. **Async Throughout**: All API calls use httpx AsyncClient with proper async/await patterns
-2. **Retry Logic**: The `@with_retry` decorator provides exponential backoff for transient failures
-3. **Type Safety**: Pydantic models validate configuration and API responses
-4. **Clean Separation**: API modules (pages, databases, blocks) are independent and focused
-5. **Error Handling**: Custom error codes (ErrorCode class) map to MCP error responses
+```bash
+# Install dev dependencies
+uv pip install -e ".[dev]"
 
-### MCP Server Flow
+# Run tests
+pytest tests/cli/ -v
 
-1. **Initialization** (`server.py:NotionServer.__init__`):
-   - FastMCP app created with capabilities
-   - Tools registered via decorators (`@self.app.tool`)
-   - API clients initialized lazily in `ensure_client()`
+# Run with coverage
+pytest tests/cli/ --cov=scripts.notion --cov-report=term-missing
 
-2. **Client Management** (`server.py:ensure_client`):
-   - Creates httpx AsyncClient with Notion API headers
-   - Tests connection with `/users/me` endpoint
-   - Initializes PagesAPI, DatabasesAPI, BlocksAPI with shared client
+# Run specific test
+pytest tests/cli/test_cli_helpers.py::test_create_block_paragraph
+```
 
-3. **Tool Execution**:
-   - Tools are async functions decorated with `@self.app.tool` and `@with_retry`
-   - Each tool calls appropriate API module method
-   - Results are JSON-serialized with success/error structure
+### Code Formatting
 
-### Available MCP Tools
+```bash
+# Format code
+black scripts/notion.py
 
-**Page Management:**
-- `create_page` - Create new Notion page
-- `get_page` - Retrieve page by ID
-- `update_page` - Update page properties
-- `archive_page` / `restore_page` - Archive/restore pages
-- `get_page_property` - Get specific property values
+# Check formatting
+black scripts/notion.py --check
+```
 
-**Todo Management:**
-- `add_todo` - Create todo with title, description, due date, priority, tags
-- `search_todos` - Query todos with filtering and sorting
+## Key Design Patterns
 
-**Database Operations:**
-- `create_database` - Create new database with custom schema
-- `query_database` - Query with filters and sorts
-- `get_database_info` - Get database metadata
+### 1. Helper Functions for API Objects
 
-**Block/Content Operations:**
-- `add_content_blocks` - Append blocks with positioning support (handles batching for >100 blocks)
-- `get_block_content` - Get block by ID
-- `list_block_children` - List child blocks
-- `update_block_content` - Update block content
-- `delete_block` - Delete block
+All helper functions create proper Notion API objects:
 
-**Diagnostics:**
-- `verify_connection` - Test Notion API authentication
-- `get_database_info` - Get configured database details
+```python
+# Properties
+create_property("title", "My Title")
+create_property("select", "Option A")
+create_property("date", "2026-12-31")
 
-## Configuration
+# Filters
+build_filter("Status", "select", "equals", "Done")
+build_compound_filter([filter1, filter2], "and")
 
-The server uses `ServerConfig` (Pydantic model) with these environment variables:
-- `NOTION_API_KEY` - Notion integration token (starts with "ntn_")
-- `NOTION_DATABASE_ID` - Default database ID for todos
-- `NOTION_PARENT_PAGE_ID` - Parent page for creating new databases/pages
-- `DATABASE_TEMPLATE_ID` - (Optional) Template for new databases
+# Blocks
+create_block("paragraph", "Hello world")
+create_block("code", "print('hello')", language="python")
+create_block("to_do", "Task", checked=True)
+```
 
-Configuration is loaded from `.env` file or environment variables via `ServerConfig.from_env()`.
+### 2. Smart Caching (NotionCache)
 
-## Testing Strategy
+- Caches page/database names → IDs
+- Supports hierarchical paths ("Parent/Child")
+- Auto-refreshes every 24 hours
+- Falls back to API search if not cached
 
-Tests are organized by module and feature:
-- `tests/blocks/` - Block operations (basic, formatting, subtasks, permissions)
-- `tests/pages/` - Page operations (basic, permissions)
-- `tests/databases/` - Database operations (todo management)
-- `tests/properties/` - Property type handling
-- `tests/utils/` - Utility functions
-- `tests/common/` - Shared test fixtures and helpers
+```python
+cache = NotionCache()
+page_id = cache.find_by_path("Work/Projects/Q1", "page")
+```
 
-**Test markers:**
-- `@pytest.mark.integration` - Tests requiring Notion API access (set in pyproject.toml)
+### 3. ID Resolution
 
-**Coverage:**
-- Run `pytest` to see coverage report (configured in pyproject.toml)
-- Target: Cover all API methods and error paths
+The `resolve_id()` function handles name-or-ID inputs:
+
+```python
+resolved_id = resolve_id(cache, "Work/Projects", "page", api_key)
+# Returns UUID, whether input was name or ID
+```
+
+### 4. Async API Calls
+
+All API calls use httpx AsyncClient with async/await:
+
+```python
+async def _get():
+    headers = get_auth_headers(api_key)
+    async with httpx.AsyncClient(...) as client:
+        response = await client.get(f"/pages/{page_id}")
+        response.raise_for_status()
+        return response.json()
+
+result = asyncio.run(_get())
+```
+
+### 5. Error Handling
+
+Commands check for required parameters and provide clear error messages:
+
+```python
+if not api_key:
+    click.echo("❌ Error: NOTION_API_KEY required", err=True)
+    sys.exit(1)
+```
 
 ## Common Development Tasks
 
-### Adding a New Tool
+### Adding a New Command
 
-1. Add handler function in `server.py` within `register_tools()`:
+1. Add command function with decorator:
+
 ```python
-@self.app.tool(name="tool_name", description="What it does")
-@with_retry(retry_count=3)
-async def handle_tool_name(param: str) -> str:
-    await self.ensure_client()
-    result = await self.api_module.method(param)
-    return json.dumps(result, indent=2)
+@cli.command()
+@click.option('--param', help='Description')
+def my_command(param: str):
+    """
+    Command description.
+
+    Examples:
+        notion.py my-command --param value
+    """
+    # Implementation
 ```
 
-2. Add corresponding API method in appropriate module (`api/pages.py`, `api/databases.py`, or `api/blocks.py`)
+2. Add error checking
+3. Implement async API call
+4. Return JSON result
 
-3. Write tests in `tests/test_tool_handlers.py` or module-specific test files
+### Adding a New Helper Function
 
-### Adding a New API Method
+1. Add function with type hints:
 
-1. Add method to appropriate API class (`PagesAPI`, `DatabasesAPI`, `BlocksAPI`)
-2. Use structured logging: `self._log.error("event_name", context=value)`
-3. Let httpx exceptions propagate (handled by `@with_retry` decorator)
-4. Return raw JSON response from Notion API
-
-### Working with Notion API
-
-- **API Version**: "2022-06-28" (set in client headers)
-- **Base URL**: https://api.notion.com/v1
-- **Authentication**: Bearer token in Authorization header
-- **Rate Limits**: Notion has rate limits; retry logic handles 429 responses
-- **Batch Limits**: Max 100 blocks per append_children request (handled automatically)
-
-## Debugging
-
-### Logging
-The server uses structlog for structured logging:
 ```python
-self._log.error("event_name", param1=value1, param2=value2)
+def create_my_helper(param: str) -> Dict[str, Any]:
+    """
+    Helper description.
+
+    Args:
+        param: Parameter description
+
+    Returns:
+        Notion API object structure
+    """
+    return {"type": "...", ...}
 ```
 
-### Common Issues
+2. Add unit tests in `tests/cli/test_cli_helpers.py`
+3. Add integration test in `tests/cli/test_cli_commands.py`
 
-1. **401 Authentication Error**: Check NOTION_API_KEY is correct and starts with "ntn_"
-2. **404 Not Found**: Verify database/page ID and that integration has access
-3. **Connection Errors**: Check network connectivity; retry logic will attempt 3x with backoff
-4. **Import Errors**: Ensure PYTHONPATH includes project root when running directly
+### Adding a New Block Type
 
-### Testing Locally
+Block types are handled by `create_block()`. To add support:
 
-Use `verify_connection` tool to test authentication and configuration.
+1. Add to the function's block type handling
+2. Add to Click choice enum in `blocks add` command
+3. Add tests for the new block type
+
+## Testing Strategy
+
+### Test Organization
+
+```
+tests/cli/
+├── test_cli_helpers.py      # Unit tests for helper functions
+├── test_cli_commands.py     # Integration tests for commands
+├── test_cli_cache.py        # Cache operations tests
+├── test_cli_diagnostics.py  # Diagnostic commands tests
+├── test_cli_errors.py       # Error handling tests
+└── conftest.py              # Shared fixtures
+```
+
+### Test Coverage Target: ~90%
+
+- Helper functions: 95%+ (pure functions)
+- Cache operations: 90%+
+- Command execution: 85%+
+- Error handling: 80%+
+
+### Running Tests
+
+```bash
+# All tests
+pytest tests/cli/ -v
+
+# Unit tests only (fast)
+pytest tests/cli/test_cli_helpers.py -v
+
+# Integration tests (slower)
+pytest tests/cli/test_cli_commands.py -v
+
+# With coverage
+pytest tests/cli/ --cov=scripts.notion --cov-report=term-missing
+```
 
 ## Code Style
 
 - **Line Length**: 88 characters (Black default)
 - **Python Version**: 3.10+
-- **Type Hints**: Required on all function signatures (enforced by mypy)
-- **Async**: Use async/await for all I/O operations
-- **Imports**: Absolute imports from package root
+- **Type Hints**: Use on function signatures
+- **Docstrings**: Include examples in command docstrings
+- **Error Messages**: Use emoji prefix (❌ for errors, ✅ for success)
+
+## Environment Variables
+
+- `NOTION_API_KEY` - Required: Notion integration token
+- `NOTION_DATABASE_ID` - Optional: Default database for todos
+- `NOTION_PARENT_PAGE_ID` - Optional: Default parent for new pages
+
+## Debugging
+
+### Enable Verbose Output
+
+Add `--help` to any command to see usage:
+
+```bash
+uv run scripts/notion.py add page --help
+uv run scripts/notion.py blocks add --help
+```
+
+### Test API Connection
+
+```bash
+uv run scripts/notion.py verify-connection
+uv run scripts/notion.py check-config
+```
+
+### Clear Cache
+
+```bash
+rm -rf ~/.cache/notion-cli/cache.json
+uv run scripts/notion.py refresh-cache
+```
+
+## Common Issues
+
+### Import Errors
+The script uses inline dependencies (PEP 723), so no imports from src/ are needed.
+
+### API 401 Errors
+- Check `NOTION_API_KEY` is set and starts with "ntn_"
+- Verify integration has access to pages/databases
+
+### Cache Issues
+- Run `uv run scripts/notion.py refresh-cache`
+- Cache is stored in `~/.cache/notion-cli/cache.json`
+
+## Performance Tips
+
+1. **Use caching**: Let the cache auto-refresh, don't force refresh unless needed
+2. **Use --all sparingly**: Only use `--all` flag when you need all pages
+3. **Batch operations**: Use JSON input for bulk block creation
+
+## Documentation
+
+- **Test Plan**: `docs/CLI_TEST_PLAN.md` - 140+ test cases
+- **Migration Guide**: `docs/CLI_MIGRATION_GUIDE.md` - Migration from old CLI
+- **Quick Reference**: `CLI_QUICK_REFERENCE.md` - Command quick ref
+- **Examples**: `examples/` - Real-world usage scripts
+
+## Project Goals
+
+1. **Complete API Coverage**: Expose 100% of Notion API
+2. **Human-Friendly**: Make Notion API accessible via intuitive CLI
+3. **Standalone**: No installation, just `uv run`
+4. **Well-Tested**: High test coverage with clear test cases
+5. **Production-Ready**: Proper error handling, validation, clear messages

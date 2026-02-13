@@ -1,42 +1,32 @@
 [project]
-name = "notion-api-mcp"
-version = "0.1.0"
-description = "Enhanced Notion MCP integration with advanced features"
+name = "notion-cli"
+version = "1.0.0"
+description = "Comprehensive command-line interface for Notion API"
 requires-python = ">=3.10"
 dependencies = [
-    "mcp[cli]>=1.2.0",  # MCP SDK with CLI features
-    "httpx",            # Async HTTP client
-    "python-dotenv",    # Environment management
-    "pydantic",         # Data validation
-    "pytest",           # Testing
-    "pytest-asyncio",   # Async test support
-    "pytest-cov",       # Test coverage
-    "rich",            # Enhanced terminal output
-    "structlog"        # Structured logging
+    "httpx",            # Async HTTP client for API calls
+    "click",            # CLI framework
+    "python-dotenv",    # Environment variable management
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",           # Testing framework
+    "pytest-cov",       # Test coverage reporting
+    "pytest-httpx",     # HTTP mocking for tests
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/notion_api_mcp"]
-
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "--cov=notion_api_mcp --cov-report=term-missing"
+addopts = "--cov=scripts.notion --cov-report=term-missing"
 markers = [
     "integration: marks tests that require Notion API access",
 ]
-
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-check_untyped_defs = true
 
 [tool.black]
 line-length = 88

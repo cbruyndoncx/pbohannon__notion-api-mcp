@@ -1,40 +1,73 @@
-# Notion API MCP
+# Notion CLI
 
-A comprehensive toolkit for Notion API integration, providing both:
-- **MCP Server**: AI-powered interaction through Claude Desktop and other MCP clients
-- **CLI Scripts**: Direct command-line tools using `uv run` for automation and scripting
+A comprehensive, standalone command-line interface for the Notion API. Provides complete access to Notion's features through an intuitive, human-friendly CLI with smart caching and path-based navigation.
 
-This project enables advanced todo list management and content organization capabilities through Notion's API.
+## Features
 
-## MCP Overview
-
-Python-based MCP server that enables AI models to interact with Notion's API, providing:
-- **Todo Management**: Create, update, and track tasks with rich text, due dates, priorities, and nested subtasks
-- **Database Operations**: Create and manage Notion databases with custom properties, filters, and views
-- **Content Organization**: Structure and format content with Markdown support, hierarchical lists, and block operations
-- **Real-time Integration**: Direct interaction with Notion's workspace, pages, and databases through clean async implementation
-
-[Full feature list →](docs/features.md)
+- ✅ **Complete API Coverage** - All Notion API endpoints and parameters
+- ✅ **30+ Block Types** - Support for all Notion block types
+- ✅ **Database Operations** - Create, query, update databases with filters and sorts
+- ✅ **Todo Management** - Full task management with properties (priority, tags, due dates, status)
+- ✅ **Smart Caching** - Name-to-ID resolution with automatic caching
+- ✅ **Path Navigation** - Use `"Parent/Child"` paths instead of UUIDs
+- ✅ **Standalone** - Single executable with PEP 723 inline dependencies
+- ✅ **Human-Friendly** - Intuitive commands with helpful shortcuts
 
 ## Quick Start
 
 ```bash
-# Clone and setup
-git clone https://github.com/yourusername/notion-api-mcp.git
-cd notion-api-mcp
-uv venv && source .venv/bin/activate
+# Set your API key
+export NOTION_API_KEY="ntn_your_integration_token_here"
 
-# Install and configure
+# Verify connection
+uv run scripts/notion.py verify-connection
+
+# List all pages
+uv run scripts/notion.py list pages
+
+# Add a page with icon and cover
+uv run scripts/notion.py add page \
+    --title "Meeting Notes" \
+    --parent "Work" \
+    --icon "📝" \
+    --cover "https://example.com/cover.jpg"
+
+# Add a todo
+uv run scripts/notion.py add todo \
+    --title "Complete project" \
+    --database "Tasks" \
+    --priority High \
+    --tags "work,urgent" \
+    --due-date "2026-12-31"
+
+# Query database with filters
+uv run scripts/notion.py query database "Tasks" \
+    --status "In Progress" \
+    --priority High
+```
+
+## Installation
+
+### Option 1: Standalone Usage (Recommended)
+
+The CLI uses PEP 723 inline dependencies and can run directly with `uv`:
+
+```bash
+# No installation required!
+uv run scripts/notion.py --help
+```
+
+### Option 2: Install Dependencies
+
+```bash
+# Install uv if not already installed
+pip install uv
+
+# Install project dependencies
 uv pip install -e .
-cp .env.integration.template .env
 
-# Add your Notion credentials to .env:
-# NOTION_API_KEY=ntn_your_integration_token_here
-# NOTION_PARENT_PAGE_ID=your_page_id_here  # For new databases
-# NOTION_DATABASE_ID=your_database_id_here  # For existing databases
-
-# Run the server
-python -m notion_api_mcp
+# Or install dev dependencies for testing
+uv pip install -e ".[dev]"
 ```
 
 ## Getting Started
@@ -43,269 +76,409 @@ python -m notion_api_mcp
 
 1. Go to https://www.notion.so/my-integrations
 2. Click "New integration"
-3. Name your integration (e.g., "My MCP Integration")
-4. Select the workspace where you'll use the integration
-5. Copy the "Internal Integration Token" - this will be your `NOTION_API_KEY`
+3. Name your integration (e.g., "My CLI Tool")
+4. Copy the "Internal Integration Token" - this is your `NOTION_API_KEY`
    - Should start with "ntn_"
 
-### 2. Set Up Notion Access
+### 2. Connect Integration to Your Pages/Databases
 
-You'll need either a parent page (for creating new databases) or an existing database ID:
+1. Open the Notion page or database you want to access
+2. Click the ••• menu in the top right
+3. Select "Add connections" and choose your integration
+4. The integration now has access to that page and its children
 
-#### Option A: Parent Page for New Databases
-1. Open Notion in your browser
-2. Create a new page or open an existing one where you want to create databases
-3. Click the ••• menu in the top right
-4. Select "Add connections" and choose your integration
-5. Copy the page ID from the URL - it's the string after the last slash and before the question mark
-   - Example: In `https://notion.so/myworkspace/123456abcdef...`, the ID is `123456abcdef...`
-   - This will be your `NOTION_PARENT_PAGE_ID`
-
-#### Option B: Existing Database
-1. Open your existing Notion database
-2. Make sure it's connected to your integration (••• menu > Add connections)
-3. Copy the database ID from the URL
-   - Example: In `https://notion.so/myworkspace/123456abcdef...?v=...`, the ID is `123456abcdef...`
-   - This will be your `NOTION_DATABASE_ID`
-
-### 3. Install the MCP Server
-
-1. Create virtual environment:
-```bash
-cd notion-api-mcp
-uv venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
-
-2. Install dependencies:
-```bash
-uv pip install -e .
-```
-
-3. Configure environment:
-```bash
-cp .env.integration.template .env
-```
-
-4. Edit .env with your Notion credentials:
-```env
-NOTION_API_KEY=ntn_your_integration_token_here
-
-# Choose one or both of these depending on your needs:
-NOTION_PARENT_PAGE_ID=your_page_id_here  # For creating new databases
-NOTION_DATABASE_ID=your_database_id_here  # For working with existing databases
-```
-
-### 4. Configure Claude Desktop
-
-IMPORTANT: While the server supports both .env files and environment variables, Claude Desktop specifically requires configuration in its config file to use the MCP.
-
-Add to Claude Desktop's config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-```json
-{
-  "mcpServers": {
-    "notion-api": {
-      "command": "/path/to/your/.venv/bin/python",
-      "args": ["-m", "notion_api_mcp"],
-      "env": {
-        "NOTION_API_KEY": "ntn_your_integration_token_here",
-        
-        // Choose one or both:
-        "NOTION_PARENT_PAGE_ID": "your_page_id_here",
-        "NOTION_DATABASE_ID": "your_database_id_here"
-      }
-    }
-  }
-}
-```
-
-Note: Even if you have a .env file configured, you must add these environment variables to the Claude Desktop config for Claude to use the MCP. The .env file is primarily for local development and testing.
-
-## CLI Scripts (Standalone Usage)
-
-In addition to the MCP server, this project provides standalone CLI scripts using PEP 723 inline dependencies. These scripts can be run directly with `uv run` without any installation or virtual environment setup.
-
-### Quick Start with CLI
+### 3. Set Environment Variables
 
 ```bash
-# Set your API key
+# Required
 export NOTION_API_KEY="ntn_your_integration_token_here"
 
-# Verify connection
-uv run scripts/notion-utils.py verify-connection
-
-# Check configuration
-uv run scripts/notion-utils.py check-config
-
-# Get database info
-uv run scripts/notion-utils.py get-database-info --database-id <id>
+# Optional (for defaults)
+export NOTION_DATABASE_ID="your_default_database_id"
+export NOTION_PARENT_PAGE_ID="your_default_parent_page_id"
 ```
 
-### Available Scripts
+Or create a `.env` file:
 
-#### 1. `notion-utils.py` - Diagnostics and Utilities
+```env
+NOTION_API_KEY=ntn_your_integration_token_here
+NOTION_DATABASE_ID=your_database_id
+NOTION_PARENT_PAGE_ID=your_parent_page_id
+```
+
+## Complete CLI Reference
+
+### Diagnostics
+
 ```bash
 # Verify API connection
-uv run scripts/notion-utils.py verify-connection
-
-# Get database information
-uv run scripts/notion-utils.py get-database-info --database-id <id>
+uv run scripts/notion.py verify-connection
 
 # Check environment configuration
-uv run scripts/notion-utils.py check-config
+uv run scripts/notion.py check-config
 ```
 
-#### 2. `notion-pages.py` - Page Management
+### List & Search
+
 ```bash
-# Create a page in a database
-uv run scripts/notion-pages.py create --database-id <id> --title "My Page"
+# List all pages
+uv run scripts/notion.py list pages
 
-# Create a page under another page
-uv run scripts/notion-pages.py create --page-id <id> --parent-type page --title "Child"
+# List all databases
+uv run scripts/notion.py list databases --refresh
 
-# Get page information
-uv run scripts/notion-pages.py get <page-id>
-
-# Update page properties
-uv run scripts/notion-pages.py update <page-id> \
-    --properties '{"Status": {"select": {"name": "Done"}}}'
-
-# Archive/restore pages
-uv run scripts/notion-pages.py archive <page-id>
-uv run scripts/notion-pages.py restore <page-id>
+# Search for content
+uv run scripts/notion.py search "project"
+uv run scripts/notion.py search --type page "meeting"
 ```
 
-#### 3. `notion-databases.py` - Database and Todo Operations
+### Pages
+
 ```bash
-# Query a database
-uv run scripts/notion-databases.py query --database-id <id>
+# Create page with all options
+uv run scripts/notion.py add page \
+    --title "Meeting Notes" \
+    --parent "Work/Projects" \
+    --icon "📝" \
+    --cover "https://example.com/cover.jpg" \
+    --content "Initial content"
 
-# Query with filters
-uv run scripts/notion-databases.py query --database-id <id> \
-    --filter '{"property": "Status", "select": {"equals": "Done"}}'
+# Get page
+uv run scripts/notion.py get page "Meeting Notes"
+uv run scripts/notion.py get page "Work/Projects/Q1"
 
-# Add a todo
-uv run scripts/notion-databases.py add-todo --database-id <id> \
-    --title "Complete project" \
-    --description "Finish all tasks" \
-    --due-date "2026-12-31" \
-    --priority "High" \
-    --tags "work,urgent"
+# Update page
+uv run scripts/notion.py update page "Notes" --title "Updated Title"
+uv run scripts/notion.py update page "Old Page" --archive
+uv run scripts/notion.py update page "Archived" --restore
 
-# Search todos
-uv run scripts/notion-databases.py search-todos --database-id <id> \
+# Move page
+uv run scripts/notion.py move page "Note" --to "Archive"
+
+# Delete page (archives it)
+uv run scripts/notion.py delete page "Old Notes"
+```
+
+### Databases
+
+```bash
+# Create database with template
+uv run scripts/notion.py add database \
+    --title "Tasks" \
+    --parent "Work" \
+    --template tasks
+
+# Available templates: tasks, notes, contacts
+
+# Create custom database
+uv run scripts/notion.py add database \
+    --title "CRM" \
+    --parent "Work" \
+    --properties '{"Name": {"title": {}}, "Email": {"email": {}}}'
+
+# Query database with filters
+uv run scripts/notion.py query database "Tasks" \
     --status "In Progress" \
-    --priority "High"
+    --priority High \
+    --due-before "2026-03-01"
+
+# Query with custom filter
+uv run scripts/notion.py query database "Tasks" \
+    --filter '{"property": "Status", "status": {"equals": "Done"}}' \
+    --sorts '[{"property": "Priority", "direction": "descending"}]'
+
+# Fetch all results with pagination
+uv run scripts/notion.py query database "Tasks" --all
 
 # Get database info
-uv run scripts/notion-databases.py info --database-id <id>
+uv run scripts/notion.py get database "Tasks"
+
+# Update database
+uv run scripts/notion.py update database "Tasks" --title "My Tasks"
 ```
 
-#### 4. `notion-blocks.py` - Block Content Operations
+### Todos
+
 ```bash
-# Add text to a page
-uv run scripts/notion-blocks.py add <page-id> --text "Hello, world!"
+# Add todo with properties
+uv run scripts/notion.py add todo \
+    --database "Tasks" \
+    --title "Complete project" \
+    --description "Finish all remaining tasks" \
+    --due-date "2026-12-31" \
+    --priority "High" \
+    --tags "work,urgent" \
+    --status "In Progress"
 
-# Add multiple blocks from JSON
-uv run scripts/notion-blocks.py add <page-id> --blocks '[
-    {"type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "First"}}]}},
-    {"type": "heading_1", "heading_1": {"rich_text": [{"text": {"content": "Title"}}]}}
-]'
+# Search todos with filters
+uv run scripts/notion.py todos search \
+    --database "Tasks" \
+    --status "In Progress" \
+    --priority High \
+    --due-before "2026-03-01"
 
-# Get block content
-uv run scripts/notion-blocks.py get <block-id>
-
-# List child blocks
-uv run scripts/notion-blocks.py list-children <block-id>
-
-# Update block content
-uv run scripts/notion-blocks.py update <block-id> \
-    --content '{"paragraph": {"rich_text": [{"text": {"content": "Updated"}}]}}'
-
-# Delete a block
-uv run scripts/notion-blocks.py delete <block-id>
+# Search by tags
+uv run scripts/notion.py todos search --tags urgent --limit 10
 ```
 
-### Environment Variables for CLI
+### Blocks - All 30+ Types
 
-The CLI scripts use environment variables for configuration (with optional CLI flag overrides):
+**Text Blocks:**
+
+```bash
+# Paragraphs and headings
+uv run scripts/notion.py blocks add "Notes" --type paragraph --text "Hello world"
+uv run scripts/notion.py blocks add "Notes" --type heading_1 --text "Main Title"
+uv run scripts/notion.py blocks add "Notes" --type heading_2 --text "Section"
+uv run scripts/notion.py blocks add "Notes" --type heading_3 --text "Subsection"
+
+# Lists
+uv run scripts/notion.py blocks add "Notes" --type bulleted_list_item --text "Item 1"
+uv run scripts/notion.py blocks add "Notes" --type numbered_list_item --text "Step 1"
+
+# Todo items
+uv run scripts/notion.py blocks add "Notes" --type to_do --text "Task" --checked
+
+# Other text blocks
+uv run scripts/notion.py blocks add "Notes" --type quote --text "Quote"
+uv run scripts/notion.py blocks add "Notes" --type toggle --text "Toggle content"
+```
+
+**Code & Equations:**
+
+```bash
+# Code blocks
+uv run scripts/notion.py blocks add "Notes" \
+    --type code \
+    --text "print('hello')" \
+    --language python
+
+# Equations
+uv run scripts/notion.py blocks add "Notes" \
+    --type equation \
+    --expression "E=mc^2"
+```
+
+**Callouts:**
+
+```bash
+uv run scripts/notion.py blocks add "Notes" \
+    --type callout \
+    --text "Important note" \
+    --icon "💡"
+```
+
+**Media Blocks:**
+
+```bash
+# Images, videos, files
+uv run scripts/notion.py blocks add "Notes" \
+    --type image \
+    --url "https://example.com/image.jpg"
+
+uv run scripts/notion.py blocks add "Notes" \
+    --type video \
+    --url "https://youtube.com/watch?v=..."
+
+# Bookmarks and embeds
+uv run scripts/notion.py blocks add "Notes" \
+    --type bookmark \
+    --url "https://example.com"
+```
+
+**Layout Blocks:**
+
+```bash
+uv run scripts/notion.py blocks add "Notes" --type divider
+uv run scripts/notion.py blocks add "Notes" --type table_of_contents
+```
+
+**Block Operations:**
+
+```bash
+# List blocks
+uv run scripts/notion.py blocks list "Quick Note"
+
+# Get specific block
+uv run scripts/notion.py get block <block-id>
+
+# Update block
+uv run scripts/notion.py update block <block-id> --text "Updated content"
+
+# Delete block
+uv run scripts/notion.py blocks delete <block-id>
+```
+
+**Subtasks:**
+
+```bash
+# Add subtask to todo
+uv run scripts/notion.py blocks subtasks add <todo-block-id> --text "Subtask 1"
+
+# List subtasks
+uv run scripts/notion.py blocks subtasks list <todo-block-id>
+
+# Mark complete/incomplete
+uv run scripts/notion.py blocks subtasks check <subtask-id>
+uv run scripts/notion.py blocks subtasks uncheck <subtask-id>
+```
+
+### Cache Management
+
+```bash
+# Refresh cache of pages and databases
+uv run scripts/notion.py refresh-cache
+```
+
+## Human-Friendly Features
+
+### 1. Path-Based Navigation
+
+Use readable paths instead of UUIDs:
+
+```bash
+# Instead of:
+uv run scripts/notion.py get page "123e4567-e89b-12d3-a456-426614174000"
+
+# Use:
+uv run scripts/notion.py get page "Work/Projects/Q1 Planning"
+```
+
+### 2. Smart Caching
+
+- Automatic caching of page/database names to IDs
+- Cache refreshes every 24 hours
+- Manual refresh: `uv run scripts/notion.py refresh-cache`
+- Fallback to API search if not in cache
+
+### 3. Template Support
+
+Predefined database templates for common use cases:
+
+```bash
+uv run scripts/notion.py add database --title "Tasks" --template tasks
+uv run scripts/notion.py add database --title "Notes" --template notes
+uv run scripts/notion.py add database --title "CRM" --template contacts
+```
+
+### 4. Filter Shortcuts
+
+Easy filters for common queries:
+
+```bash
+# Instead of complex JSON:
+uv run scripts/notion.py query database "Tasks" \
+    --status "Done" \
+    --priority High
+
+# Equivalent to:
+uv run scripts/notion.py query database "Tasks" \
+    --filter '{"and": [{"property": "Status", ...}, {"property": "Priority", ...}]}'
+```
+
+## Environment Variables
+
+The CLI uses these environment variables:
 
 - `NOTION_API_KEY` - **Required**: Notion integration token
-- `NOTION_DATABASE_ID` - Optional: Default database ID for queries
-- `NOTION_PARENT_PAGE_ID` - Optional: Default parent page for new pages/databases
+- `NOTION_DATABASE_ID` - Optional: Default database for todos
+- `NOTION_PARENT_PAGE_ID` - Optional: Default parent for new pages/databases
 
-You can either:
+You can:
 1. Set environment variables: `export NOTION_API_KEY="ntn_..."`
-2. Create a `.env` file in the project root (automatically loaded)
+2. Create a `.env` file in the project root
 3. Override with CLI flags: `--api-key "ntn_..."`
 
-### CLI vs MCP Server
+## Examples
 
-**Use CLI scripts when:**
-- You want direct command-line access to Notion
-- You're writing shell scripts or automation
-- You don't need Claude Desktop integration
-- You want standalone executables
+See the `examples/` directory for real-world usage examples:
 
-**Use MCP server when:**
-- You're using Claude Desktop or other MCP clients
-- You want conversational AI interaction with Notion
-- You need complex, multi-step workflows with AI assistance
+- `backup-database.sh` - Backup database to JSON
+- `bulk-create-pages.sh` - Bulk page creation
+- `daily-standup-automation.sh` - Daily standup automation
+- `weekly-review.sh` - Weekly review workflow
 
 ## Documentation
 
-- [Configuration Details](docs/configuration.md) - Detailed configuration options and environment variables
-- [Features](docs/features.md) - Complete feature list and capabilities
-- [Architecture](docs/ARCHITECTURE.md) - Overview of available tools and usage examples
-- [API Reference](docs/api_reference.md) - Detailed API endpoints and implementation details
-- [Test Coverage Matrix](docs/test_coverage_matrix.md) - Test coverage and validation status
-- [Dependencies](docs/dependencies.md) - Project dependencies and version information
-- [Changelog](docs/CHANGELOG.md) - Development progress and updates
+- [CLI Test Plan](docs/CLI_TEST_PLAN.md) - Comprehensive test plan with 140+ test cases
+- [CLI Migration Guide](docs/CLI_MIGRATION_GUIDE.md) - Migration from older CLI versions
+- [Quick Reference](CLI_QUICK_REFERENCE.md) - Command quick reference
+- [Implementation Summary](IMPLEMENTATION_SUMMARY.md) - Implementation details
 
 ## Development
 
-The server uses modern Python async features throughout:
-- Type-safe configuration using Pydantic models
-- Async HTTP using httpx for better performance
-- Clean MCP integration for exposing Notion capabilities
-- Proper resource cleanup and error handling
-
-### Debugging
-
-The server includes comprehensive logging:
-- Console output for development
-- File logging when running as a service
-- Detailed error messages
-- Request/response logging at debug level
-
-Set `PYTHONPATH` to include the project root when running directly:
+### Running Tests
 
 ```bash
-PYTHONPATH=/path/to/project python -m notion_api_mcp
+# Install dev dependencies
+uv pip install -e ".[dev]"
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=scripts.notion --cov-report=term-missing
+
+# Run specific test file
+pytest tests/cli/test_cli_helpers.py -v
 ```
 
-## Future Development
+### Code Style
 
-Planned enhancements:
-1. Performance Optimization
-   - Add request caching
-   - Optimize database queries
-   - Implement connection pooling
+```bash
+# Format code
+black scripts/
 
-2. Advanced Features
-   - Multi-workspace support
-   - Batch operations
-   - Real-time updates
-   - Advanced search capabilities
+# Check formatting
+black scripts/ --check
+```
 
-3. Developer Experience
-   - Interactive API documentation
-   - CLI tools for common operations
-   - Additional code examples
-   - Performance monitoring
+## Troubleshooting
 
-4. Testing Enhancements
-   - Performance benchmarks
-   - Load testing
-   - Additional edge cases
-   - Extended integration tests
+### Common Issues
+
+**401 Authentication Error**
+- Check that `NOTION_API_KEY` is set correctly
+- Verify token starts with "ntn_"
+- Ensure integration has access to the pages/databases
+
+**404 Not Found**
+- Verify the page/database exists
+- Check integration has been connected to the page
+- Try refreshing cache: `uv run scripts/notion.py refresh-cache`
+
+**Name Not Found in Cache**
+- Run `uv run scripts/notion.py refresh-cache`
+- Check spelling of page/database name
+- Use exact case-sensitive name or UUID
+
+### Getting Help
+
+```bash
+# General help
+uv run scripts/notion.py --help
+
+# Command-specific help
+uv run scripts/notion.py add --help
+uv run scripts/notion.py blocks add --help
+```
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built with [Click](https://click.palletsprojects.com/) for CLI framework
+- Uses [httpx](https://www.python-httpx.org/) for async HTTP requests
+- Follows [PEP 723](https://peps.python.org/pep-0723/) for inline script dependencies
