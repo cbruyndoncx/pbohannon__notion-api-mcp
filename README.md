@@ -401,9 +401,7 @@ See the `examples/` directory for real-world usage examples:
 ## Documentation
 
 - [CLI Test Plan](docs/CLI_TEST_PLAN.md) - Comprehensive test plan with 140+ test cases
-- [CLI Migration Guide](docs/CLI_MIGRATION_GUIDE.md) - Migration from older CLI versions
-- [Quick Reference](CLI_QUICK_REFERENCE.md) - Command quick reference
-- [Implementation Summary](IMPLEMENTATION_SUMMARY.md) - Implementation details
+- [CLAUDE.md](CLAUDE.md) - Development guide for contributors
 
 ## Development
 
